@@ -19,6 +19,16 @@ def retrieve_semantic_blob(request):
     """
     pass
 
+def feedback(request):
+    """
+    Provides a feedback form regarding the quality or otherwise of
+    the translations
+    :param request:
+    :return:
+    """
+    # TODO: set up postgres backend
+    pass
+
 
 
 class SemanticBlob:
@@ -42,11 +52,22 @@ class SemanticBlob:
         Ranks synsets from most to least likely meanings
         :return:
         """
+        # TODO: for the moment we just grab the first non-named-entity
+        # multiple synsets can come later
         pass
 
     def populate_target_synsets(self):
         """
         Populates self.target_synsets with keys=translation term and values = synsets for these terms
+        :return:
+        """
+        # TODO: filter out automatic translations
+        # TODO:
+        pass
+
+    def rank_translation_terms(self):
+        """
+        Ranks translation terms from most likely translation to least
         :return:
         """
         pass
@@ -58,14 +79,6 @@ class SemanticBlob:
         """
         pass
 
-    def calculate_semantic_intersect(self):
-        """
-        Preserves only the intersection between source synsets and target synsets
-        :return:
-        """
-
     def serialize_self_to_json(self):
         pass
 
-if __name__ == "__main__":
-    app.run(debug=True)
