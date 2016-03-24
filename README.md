@@ -20,9 +20,7 @@ In the first instance __nuance__ will be little more than a set visualiser built
 
 Subsequent iterations can explore the best way of picking out the intersecting terms and whether navigating along more complex relations (hyponyms, hypernyms) is valuable.
 
-### Framework
+### Dependencies
 
-Try Flask for this, rather than Django
-
-TODO: Visualisation library? Need good Venn diagram and tree layout libraries.
-
+Written for Python 3.3; not tested beneath this
+Django 1.8.3 

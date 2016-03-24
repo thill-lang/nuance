@@ -1,10 +1,11 @@
+{% load staticfiles %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Nuance</title>
-    <script src="{{ url_for('static', filename='scripts/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='scripts/lookups.js') }}"></script>
+    <script src="{% static 'nuance/scripts/jquery.min.js' %}"></script>
+    <script src="{% static 'nuance/scripts/render.js' %}"></script>
     <style type="text/css">
         html{ font-family: 'Helvetica', 'Arial', sans; }
     </style>

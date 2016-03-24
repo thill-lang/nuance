@@ -1,16 +1,14 @@
-from flask import Flask, render_template
-app = Flask(__name__)
+from .key import BN_KEY
+from django.shortcuts import render
 
-@app.route("/")
-def render_query_form():
+def render_query_form(request):
     """
     Presents search box with text input, language dropdowns
     for language of entry, translation language
     :return: null
     """
-    return render_template('index.html')
+    return render(request, 'nuance/index.html')
 
-@app.route("/blob")
 def retrieve_semantic_blob(request):
     """
     Parses the request object for the original term and its language
@@ -59,6 +57,12 @@ class SemanticBlob:
         :return:
         """
         pass
+
+    def calculate_semantic_intersect(self):
+        """
+        Preserves only the intersection between source synsets and target synsets
+        :return:
+        """
 
     def serialize_self_to_json(self):
         pass
