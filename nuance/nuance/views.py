@@ -30,15 +30,24 @@ def feedback(request):
     pass
 
 
+# The core data structures. The general picture is:
+# user input (the search term) generates a list of synsets.
+# These are stored as an OrderedDictionary for which
+#   1. Keys are the synset IDs
+#   2. Values are DictionaryEntry objects (see below)
+# These DictionaryEntry objects have a number of display attributes
+# of their own, and also an OrderedDictionary of Translations for which
+#   1. Keys are headwords (the translated term)
+#   2. Values are SemanticBlob objects
 
 class SemanticBlob:
 
     def __init__(self, source_term, source_language, target_language):
+        from collections import OrderedDict
         self.source_term = source_term
         self.source_language = source_language
         self.target_language = target_language
-        self.source_synsets = [] # populated by BabelNet synsets
-        self.target_synsets = {}   # keys are headwords, values are BN synsets
+        self.source_synsets = OrderedDict() # populated by BabelNet synsets
 
     def get_original_synsets(self):
         """
@@ -52,7 +61,7 @@ class SemanticBlob:
         Ranks synsets from most to least likely meanings
         :return:
         """
-        # TODO: for the moment we just grab the first non-named-entity
+        # TODO: for the moment we just use BabelNet ranking
         # multiple synsets can come later
         pass
 
@@ -62,7 +71,6 @@ class SemanticBlob:
         :return:
         """
         # TODO: filter out automatic translations
-        # TODO:
         pass
 
     def rank_translation_terms(self):
@@ -70,6 +78,7 @@ class SemanticBlob:
         Ranks translation terms from most likely translation to least
         :return:
         """
+        # TODO: for now we just use BabelNet ranking
         pass
 
     def calculate_semantic_disjunct(self):
@@ -82,3 +91,22 @@ class SemanticBlob:
     def serialize_self_to_json(self):
         pass
 
+class DictionaryEntry:
+
+    def __init__(self, headword):
+        from collections import OrderedDict
+        self.definition = ""
+        self.image = ""
+        self.headword = ""
+        self.translations = OrderedDict()
+
+class Translation:
+
+    def __init__(self, headword, language):
+        self.headword = headword
+        self.language = language
+        self.synsets = []   # We might ultimately want this to be another SemanticBlob, but we'll have to see
+
+    def fetch_synsets(self):
+        # gets synsets from headword
+        pass
