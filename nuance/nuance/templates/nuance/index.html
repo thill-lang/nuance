@@ -12,6 +12,11 @@
 </head>
 <body>
 <h1>Nuance</h1>
-<p>test info here</p>
+<p>Skeleton form</p>
+<form method="POST" action="makeblob">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Translate" id="submit"/>
+</form>
 </body>
 </html>
