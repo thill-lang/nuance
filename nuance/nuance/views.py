@@ -4,7 +4,6 @@ from django import forms
 import requests
 from django.http import JsonResponse
 
-SYNSETS = "https://babelnet.io/v3/getSynsetIds?key=" + BN_KEY
 # word={word}&langs={lang}&key={key}"
 
 def render_query_form(request):
@@ -27,10 +26,8 @@ def retrieve_semantic_blob(search_obj):
     term = search_obj.GET['term']
     start_lang = search_obj.GET['start_lang'].upper()
     trans_lang = search_obj.GET['trans_lang'].upper()
-    qry = SYNSETS + "&word=" + term + "&langs=" + start_lang + "&filterLangs=" + start_lang + "&filterLangs=" + trans_lang
-    synsets = requests.get(qry)
-    print(synsets.json())
-    return JsonResponse(synsets.json(), safe=False)
+    sb = SemanticBlob(term, start_lang, trans_lang)
+    sb.wake_up()
 
 def feedback(request):
     """
@@ -69,33 +66,59 @@ class SearchForm(forms.Form):
 
 class SemanticBlob:
 
+    SYNSETS = "https://babelnet.io/v3/getSynsetIds?key=" + BN_KEY
+    SENSES = "https://babelnet.io/v3/getSenses?key=" + BN_KEY
+    RECORDS = "https://babelnet.io/v3/getSynset?key=" + BN_KEY
+
     def __init__(self, source_term, source_language, target_language):
         from collections import OrderedDict
         self.source_term = source_term
         self.source_language = source_language
-        self.target_language = target_language
+        self.translation_language = target_language
         self.source_synsets = OrderedDict() # populated by BabelNet synsets
 
     def wake_up(self):
         # we want loading to be lazy - that is to say
         # synsets aren't populated until explicitly triggered
         # this is the trigger method
-        pass
+        qry = SemanticBlob.SYNSETS + "&word=" + self.source_term + "&langs=" + self.source_language + "&filterLangs=" + self.source_language + "&filterLangs=" + self.translation_language
+        synsets = requests.get(qry)
+        ids = [synset['id'] for synset in synsets.json()]
+        self.build_original_synsets(ids)
 
-    def build_original_synsets(self):
+
+
+
+    def build_original_synsets(self, id_list):
         """
         Gets all synsets of which self.source_term (in self.source_language) is a member
         :return:
         """
-        pass
+        raw_synsets = []
+        for id in id_list:
+            synqry = SemanticBlob.RECORDS + "&id=" + id + "&filterLangs=" + self.source_language + "&filterLangs=" + self.translation_language
+            record = requests.get(synqry)
+            id_key = {}
+            id_key[id] = record.json()
+            raw_synsets.append(id_key)
+        self.rank_original_synsets(raw_synsets)
 
-    def rank_original_synsets(self):
+    def rank_original_synsets(self, raw_synsets):
         """
         Ranks synsets from most to least likely meanings
         :return:
         """
-        # TODO: for the moment we just use BabelNet ranking
-        # multiple synsets can come later
+        named_entities = []
+        everything = []
+        # we want named entities to come last
+        for id, record in raw_synsets:
+            entity_type = record['synsetType']
+            named_entities.append(id) if entity_type == 'NAMED_ENTITY' else everything.append(id)
+        everything.append(named_entities)
+        for e in everything:
+            self.source_synsets[e] = raw_synsets[e]
+            # at this point we have the original lemmata in the correct order, though w/o synset data formatted
+            # in the right way
         pass
 
     def filter_original_synsets(self):
