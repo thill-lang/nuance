@@ -2,6 +2,7 @@ from .key import BN_KEY
 from django.shortcuts import render
 from django import forms
 import requests
+import json
 from django.http import JsonResponse
 
 # word={word}&langs={lang}&key={key}"
@@ -28,6 +29,13 @@ def retrieve_semantic_blob(search_obj):
     trans_lang = search_obj.GET['trans_lang'].upper()
     sb = SemanticBlob(term, start_lang, trans_lang)
     sb.wake_up()
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!')
+    try:
+        print(str(json.dumps(sb.source_synsets.__dict__)))
+    except Exception as e:
+        print("exception is " + str(e))
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    return sb.source_synsets
 
 def feedback(request):
     """
@@ -86,22 +94,19 @@ class SemanticBlob:
         ids = [synset['id'] for synset in synsets.json()]
         self.build_original_synsets(ids)
 
-
-
-
     def build_original_synsets(self, id_list):
         """
         Gets all synsets of which self.source_term (in self.source_language) is a member
         :return:
         """
-        raw_synsets = []
+        raw_synsets = {}
         for id in id_list:
             synqry = SemanticBlob.RECORDS + "&id=" + id + "&filterLangs=" + self.source_language + "&filterLangs=" + self.translation_language
             record = requests.get(synqry)
-            id_key = {}
-            id_key[id] = record.json()
-            raw_synsets.append(id_key)
+            raw_synsets[id] = record.json()
         self.rank_original_synsets(raw_synsets)
+        self.filter_original_synsets()
+        self.build_dictionary_entries()
 
     def rank_original_synsets(self, raw_synsets):
         """
@@ -111,26 +116,50 @@ class SemanticBlob:
         named_entities = []
         everything = []
         # we want named entities to come last
-        for id, record in raw_synsets:
+        for id in raw_synsets:
+            record = raw_synsets[id]
             entity_type = record['synsetType']
             named_entities.append(id) if entity_type == 'NAMED_ENTITY' else everything.append(id)
-        everything.append(named_entities)
+        everything.extend(named_entities)
         for e in everything:
             self.source_synsets[e] = raw_synsets[e]
             # at this point we have the original lemmata in the correct order, though w/o synset data formatted
             # in the right way
-        pass
 
     def filter_original_synsets(self):
-        # the data is very dirty - we're going to want to filter
-        # based on source, automatic translation, etc.
+        # TODO: the data is very dirty - we're going to want to filter
+        # based on source, automatic translation, etc.\
         pass
 
-    def rank_original_synsets(self):
-        # the data is very dirty - we're going to want to filter
-        # based on source, automatic translation, etc.
-        pass
+    def build_dictionary_entries(self):
+        # creates the entries for each synset
+        temp_hash = {}
+        for id in self.source_synsets:
+            synset = self.source_synsets[id]
+            headword = synset['mainSense']
+            # we're just grabbing the first entry in the appropriate language
+            defn = ""
+            for item in synset['glosses']:
+                if(item['language'] == self.source_language):
+                    defn = item['gloss']
+                    break
+            translations = self.build_ordered_list_of_translations(synset)
+            de = DictionaryEntry(id, headword, defn, translations)
+            temp_hash[id] = de
+        for key in self.source_synsets.keys():
+            self.source_synsets[key] = temp_hash[key]
 
+    def build_ordered_list_of_translations(self, record):
+        trans_temp = []
+        if('lnToOtherForm' in record.keys() and self.translation_language in record['lnToOtherForm'].keys()):
+            for trans_term in record['lnToOtherForm'][self.translation_language]:
+                trans_temp.append(trans_term)
+        for trans_sense in record['senses']:
+            if(trans_sense['language'] == self.translation_language):
+                translation = trans_sense['simpleLemma']
+                if(translation not in trans_temp):
+                    trans_temp.append(translation)
+        return trans_temp
 
     def populate_target_synsets(self):
         """
@@ -160,12 +189,11 @@ class SemanticBlob:
 
 class DictionaryEntry:
 
-    def __init__(self, synset_id, headword):
+    def __init__(self, synset_id, headword, gloss, translations):
         from collections import OrderedDict
-        self.definition = ""
-        self.image = ""
         self.synset_id = synset_id
         self.headword = ""
+        self.definition = ""
         self.translations = OrderedDict()
 
     def populate_translations(self):
